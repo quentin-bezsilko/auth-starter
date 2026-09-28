@@ -17,6 +17,7 @@ import com.qbe.auth.entity.RoleEntity;
 import com.qbe.auth.entity.UserEntity;
 import com.qbe.auth.enums.Role;
 import com.qbe.auth.exception.InvalidRefreshTokenException;
+import com.qbe.auth.exception.UserNotFoundException;
 import com.qbe.auth.properties.JwtProperties;
 import com.qbe.auth.repository.UserRepository;
 import java.time.Duration;
@@ -122,14 +123,12 @@ class TestAuthenticationService {
             LoginRequestDto request = new LoginRequestDto(USERNAME, PASSWORD);
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
             when(authentication.getName()).thenReturn(USERNAME);
-
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authenticationService.authenticate(request))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("Authenticated user not found");
+                    .isInstanceOf(UserNotFoundException.class)
+                    .hasMessage("User not found");
 
             verify(refreshTokenService, never()).create(any());
 

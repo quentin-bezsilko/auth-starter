@@ -8,6 +8,7 @@ import com.qbe.auth.entity.PermissionEntity;
 import com.qbe.auth.entity.RefreshTokenEntity;
 import com.qbe.auth.entity.UserEntity;
 import com.qbe.auth.exception.InvalidRefreshTokenException;
+import com.qbe.auth.exception.UserNotFoundException;
 import com.qbe.auth.properties.JwtProperties;
 import com.qbe.auth.repository.UserRepository;
 import java.time.Instant;
@@ -42,7 +43,7 @@ public class AuthenticationService {
 
         UserEntity user = userRepository
                 .findByUsername(authentication.getName())
-                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String accessToken = createAccessToken(user);
         String refreshToken = refreshTokenService.create(user);

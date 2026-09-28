@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -38,7 +39,8 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http) {
-        http.csrf(AbstractHttpConfigurer::disable)
+        http.cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_ENDPOINTS)
                         .permitAll()
@@ -55,16 +57,13 @@ public class SecurityConfig {
 
     @Bean
     DaoAuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
-
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userService);
         provider.setPasswordEncoder(passwordEncoder);
-
         return provider;
     }
 
     @Bean
     AuthenticationManager authenticationManager(DaoAuthenticationProvider authenticationProvider) {
-
         return new ProviderManager(authenticationProvider);
     }
 

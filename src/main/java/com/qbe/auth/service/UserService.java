@@ -22,7 +22,6 @@ public class UserService implements UserDetailsService {
     @Transactional(readOnly = true)
     @NullMarked
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
         UserEntity user = userRepository
                 .findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));

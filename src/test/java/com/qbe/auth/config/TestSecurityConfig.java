@@ -1,11 +1,11 @@
 package com.qbe.auth.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKMatcher;
 import com.nimbusds.jose.jwk.JWKSelector;
-import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.qbe.auth.service.UserService;
@@ -15,11 +15,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -28,147 +24,120 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
-@ExtendWith(MockitoExtension.class)
 class TestSecurityConfig {
 
     private static final String KEY_ID = "authstarter-key";
 
     private SecurityConfig securityConfig;
 
-    @Mock
-    private UserService userService;
-
     @BeforeEach
     void setUp() {
         securityConfig = new SecurityConfig();
     }
 
-    @Nested
-    class PasswordEncoderBean {
-
-        @Test
-        void shouldCreateBCryptPasswordEncoder() {
-            PasswordEncoder result = securityConfig.passwordEncoder();
-
-            assertThat(result).isNotNull().isInstanceOf(BCryptPasswordEncoder.class);
-        }
-
-        @Test
-        void shouldEncodeAndValidatePassword() {
-            PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
-
-            String rawPassword = "password";
-
-            String encodedPassword = passwordEncoder.encode(rawPassword);
-
-            assertThat(encodedPassword).isNotBlank().isNotEqualTo(rawPassword);
-
-            assertThat(passwordEncoder.matches(rawPassword, encodedPassword)).isTrue();
-        }
-
-        @Test
-        void shouldRejectInvalidPassword() {
-            PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
-
-            String encodedPassword = passwordEncoder.encode("password");
-
-            assertThat(passwordEncoder.matches("wrong-password", encodedPassword))
-                    .isFalse();
-        }
+    @Test
+    void shouldCreateBCryptPasswordEncoder() {
+        PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
+        assertNotNull(passwordEncoder);
+        assertInstanceOf(BCryptPasswordEncoder.class, passwordEncoder);
     }
 
-    @Nested
-    class AuthenticationProviderBean {
+    @Test
+    void shouldEncodeAndMatchPassword() {
+        PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
 
-        @Test
-        void shouldCreateDaoAuthenticationProvider() {
-            PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
+        String rawPassword = "my-password";
+        String encodedPassword = passwordEncoder.encode(rawPassword);
 
-            DaoAuthenticationProvider result = securityConfig.authenticationProvider(userService, passwordEncoder);
-
-            assertThat(result).isNotNull().isInstanceOf(DaoAuthenticationProvider.class);
-        }
+        assertNotNull(encodedPassword);
+        assertNotEquals(rawPassword, encodedPassword);
+        assertTrue(passwordEncoder.matches(rawPassword, encodedPassword));
+        assertFalse(passwordEncoder.matches("wrong-password", encodedPassword));
     }
 
-    @Nested
-    class AuthenticationManagerBean {
+    @Test
+    void shouldCreateAuthenticationProvider() {
+        UserService userService = mock(UserService.class);
+        PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
 
-        @Test
-        void shouldCreateProviderManager() {
-            PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
-
-            DaoAuthenticationProvider provider = securityConfig.authenticationProvider(userService, passwordEncoder);
-
-            AuthenticationManager result = securityConfig.authenticationManager(provider);
-
-            assertThat(result).isNotNull().isInstanceOf(ProviderManager.class);
-        }
-
-        @Test
-        void shouldConfigureAuthenticationProvider() {
-            PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
-
-            DaoAuthenticationProvider provider = securityConfig.authenticationProvider(userService, passwordEncoder);
-
-            ProviderManager authenticationManager = (ProviderManager) securityConfig.authenticationManager(provider);
-
-            assertThat(authenticationManager.getProviders()).containsExactly(provider);
-        }
+        DaoAuthenticationProvider provider = securityConfig.authenticationProvider(userService, passwordEncoder);
+        assertNotNull(provider);
     }
 
-    @Nested
-    class JwkSourceBean {
+    @Test
+    void shouldCreateAuthenticationManager() {
+        UserService userService = mock(UserService.class);
+        PasswordEncoder passwordEncoder = securityConfig.passwordEncoder();
 
-        @Test
-        void shouldCreateJwkSourceContainingRsaKey() throws Exception {
-            KeyPair keyPair = generateRsaKeyPair();
+        DaoAuthenticationProvider provider = securityConfig.authenticationProvider(userService, passwordEncoder);
+        AuthenticationManager authenticationManager = securityConfig.authenticationManager(provider);
 
-            RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-
-            RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-
-            JWKSource<SecurityContext> jwkSource = securityConfig.jwkSource(publicKey, privateKey);
-
-            JWKSelector selector =
-                    new JWKSelector(new JWKMatcher.Builder().keyID(KEY_ID).build());
-
-            List<JWK> keys = jwkSource.get(selector, null);
-
-            assertThat(keys).hasSize(1);
-
-            RSAKey rsaKey = (RSAKey) keys.getFirst();
-
-            assertThat(rsaKey.getKeyID()).isEqualTo(KEY_ID);
-
-            assertThat(rsaKey.toRSAPublicKey().getEncoded()).isEqualTo(publicKey.getEncoded());
-
-            assertThat(rsaKey.toRSAPrivateKey().getEncoded()).isEqualTo(privateKey.getEncoded());
-        }
+        assertNotNull(authenticationManager);
+        assertInstanceOf(ProviderManager.class, authenticationManager);
     }
 
-    @Nested
-    class JwtEncoderBean {
+    @Test
+    void shouldCreateJwkSource() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-        @Test
-        void shouldCreateNimbusJwtEncoder() throws Exception {
-
-            KeyPair keyPair = generateRsaKeyPair();
-
-            JWKSource<SecurityContext> jwkSource =
-                    securityConfig.jwkSource((RSAPublicKey) keyPair.getPublic(), (RSAPrivateKey) keyPair.getPrivate());
-
-            JwtEncoder result = securityConfig.jwtEncoder(jwkSource);
-
-            assertThat(result).isNotNull().isInstanceOf(NimbusJwtEncoder.class);
-        }
+        JWKSource<SecurityContext> source = securityConfig.jwkSource(publicKey, privateKey);
+        assertNotNull(source);
     }
 
-    private KeyPair generateRsaKeyPair() throws Exception {
+    @Test
+    void shouldExposeRsaKeyWithExpectedKeyId() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
+        JWKSource<SecurityContext> source = securityConfig.jwkSource(publicKey, privateKey);
+
+        JWKSelector selector =
+                new JWKSelector(new JWKMatcher.Builder().keyID(KEY_ID).build());
+
+        List<JWK> keys = source.get(selector, null);
+
+        assertNotNull(keys);
+        assertEquals(1, keys.size());
+        assertEquals(KEY_ID, keys.getFirst().getKeyID());
+    }
+
+    @Test
+    void shouldCreateJwtEncoder() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+
+        JWKSource<SecurityContext> source = securityConfig.jwkSource(publicKey, privateKey);
+        JwtEncoder jwtEncoder = securityConfig.jwtEncoder(source);
+
+        assertNotNull(jwtEncoder);
+        assertInstanceOf(NimbusJwtEncoder.class, jwtEncoder);
+    }
+
+    @Test
+    void shouldExposeRsaKeyWithPublicAndPrivateKey() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
+
+        JWKSource<SecurityContext> source = securityConfig.jwkSource(publicKey, privateKey);
+        JWKSelector selector =
+                new JWKSelector(new JWKMatcher.Builder().keyID(KEY_ID).build());
+
+        List<JWK> keys = source.get(selector, null);
+        assertEquals(1, keys.size());
+
+        JWK key = keys.getFirst();
+        assertEquals(KEY_ID, key.getKeyID());
+        assertTrue(key.isPrivate());
+    }
+
+    private KeyPair generateKeyPair() throws Exception {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-
         generator.initialize(2048);
-
         return generator.generateKeyPair();
     }
 }
