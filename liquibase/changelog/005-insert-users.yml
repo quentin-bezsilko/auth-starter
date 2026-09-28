@@ -1,0 +1,73 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-insert-roles
+      author: qbe
+      changes:
+        - insert:
+            schemaName: authdb
+            tableName: roles
+            columns:
+              - column:
+                  name: name
+                  value: ROLE_USER
+        - insert:
+            schemaName: authdb
+            tableName: roles
+            columns:
+              - column:
+                  name: name
+                  value: ROLE_ADMIN
+  - changeSet:
+      id: 010-insert-users
+      author: qbe
+      changes:
+        # Consultation uniquement
+        - insert:
+            schemaName: authdb
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: user
+              - column:
+                  name: password
+                  value: "$2a$10$H/IpqTmcIFHRrVaZnAHeVueqenqIanfMjElhcqo6x.8HqZzvHWbI2"
+              - column:
+                  name: enabled
+                  valueBoolean: true
+        # Administrateur
+        - insert:
+            schemaName: authdb
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: admin
+              - column:
+                  name: password
+                  value: "$2a$10$H/IpqTmcIFHRrVaZnAHeVueqenqIanfMjElhcqo6x.8HqZzvHWbI2"
+              - column:
+                  name: enabled
+                  valueBoolean: true
+  - changeSet:
+      id: 011-assign-user-roles
+      author: qbe
+      changes:
+        # user -> ROLE_USER
+        - sql:
+            sql: |
+              INSERT INTO authdb.user_roles (user_id, role_id)
+              SELECT u.id, r.id
+              FROM authdb.users u
+              CROSS JOIN authdb.roles r
+              WHERE u.username = 'user'
+                AND r.name = 'ROLE_USER';
+        # admin -> ROLE_ADMIN
+        - sql:
+            sql: |
+              INSERT INTO authdb.user_roles (user_id, role_id)
+              SELECT u.id, r.id
+              FROM authdb.users u
+              CROSS JOIN authdb.roles r
+              WHERE u.username = 'admin'
+                AND r.name = 'ROLE_ADMIN';

@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-insert-role-permissions
+      author: qbe
+      changes:
+        # ROLE_USER -> READ
+        - sql:
+            sql: |
+              INSERT INTO authdb.role_permissions (role_id, permission_id)
+              SELECT r.id, p.id
+              FROM authdb.roles r
+              CROSS JOIN authdb.permissions p
+              WHERE r.name = 'ROLE_USER'
+                AND p.name = 'READ';
+
+        # ROLE_ADMIN -> READ + WRITE
+        - sql:
+            sql: |
+              INSERT INTO authdb.role_permissions (role_id, permission_id)
+              SELECT r.id, p.id
+              FROM authdb.roles r
+              CROSS JOIN authdb.permissions p
+              WHERE r.name = 'ROLE_ADMIN'
+                AND p.name IN ('READ', 'WRITE');

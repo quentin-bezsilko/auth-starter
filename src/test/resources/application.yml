@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    hikari:
+      max-lifetime: 30000
+      idle-timeout: 10000
+      keepalive-time: 5000
+  cache:
+    type: simple
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: file:liquibase/changelog/master.yml
+
+  security:
+    user:
+      name: admin
+      password: admin
+
+cache:
+  ttl:
+    samples: 60
+
+app:
+  security:
+    private-key: classpath:certs/private-key.pem
+    public-key: classpath:certs/public-key.pem
+
+logging:
+  level:
+    org.springframework.security: INFO

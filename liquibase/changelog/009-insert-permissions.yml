@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-insert-permissions
+      author: qbe
+      changes:
+        - insert:
+            schemaName: authdb
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: READ
+        - insert:
+            schemaName: authdb
+            tableName: permissions
+            columns:
+              - column:
+                  name: name
+                  value: WRITE
