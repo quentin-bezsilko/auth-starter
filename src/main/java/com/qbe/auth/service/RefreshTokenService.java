@@ -130,11 +130,8 @@ public class RefreshTokenService {
     private String hash(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
-
             byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-
             return HexFormat.of().formatHex(hash);
-
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(HASH_ALGORITHM + " algorithm is not available", e);
         }

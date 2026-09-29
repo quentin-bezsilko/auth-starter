@@ -7,10 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.qbe.auth.dto.LoginRequestDto;
-import com.qbe.auth.dto.LogoutRequestDto;
-import com.qbe.auth.dto.RefreshTokenRequestDto;
-import com.qbe.auth.dto.TokenResponseDto;
+import com.qbe.auth.dto.*;
 import com.qbe.auth.entity.PermissionEntity;
 import com.qbe.auth.entity.RefreshTokenEntity;
 import com.qbe.auth.entity.RoleEntity;
@@ -92,18 +89,13 @@ class TestAuthenticationService {
             UserEntity user = createUser();
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
             when(authentication.getName()).thenReturn(USERNAME);
-
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(REFRESH_TOKEN);
 
-            TokenResponseDto result = authenticationService.authenticate(request);
+            AuthenticationTokensDto result = authenticationService.authenticate(request);
 
             assertThat(result).isNotNull();
             assertThat(result.accessToken()).isEqualTo(ACCESS_TOKEN);
@@ -112,7 +104,6 @@ class TestAuthenticationService {
             assertThat(result.expiresIn()).isEqualTo(ACCESS_TOKEN_DURATION.toSeconds());
 
             verify(authenticationManager).authenticate(new UsernamePasswordAuthenticationToken(USERNAME, PASSWORD));
-
             verify(userRepository).findByUsername(USERNAME);
             verify(refreshTokenService).create(user);
             verify(jwtEncoder).encode(any(JwtEncoderParameters.class));
@@ -131,7 +122,6 @@ class TestAuthenticationService {
                     .hasMessage("User not found");
 
             verify(refreshTokenService, never()).create(any());
-
             verify(jwtEncoder, never()).encode(any());
         }
 
@@ -142,15 +132,10 @@ class TestAuthenticationService {
             UserEntity user = createUser();
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
             when(authentication.getName()).thenReturn(USERNAME);
-
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(REFRESH_TOKEN);
 
             authenticationService.authenticate(request);
@@ -162,21 +147,13 @@ class TestAuthenticationService {
             JwtClaimsSet claims = captor.getValue().getClaims();
 
             assertThat(claims.getIssuer()).hasToString(ISSUER);
-
             assertThat(claims.getSubject()).isEqualTo(USERNAME);
-
             assertThat(claims.getAudience()).containsExactly(AUDIENCE);
-
             assertThat(Collections.singletonList(claims.getClaim("userId"))).isEqualTo(List.of(user.getId()));
-
             assertThat(claims.getClaimAsStringList("authorities")).containsExactly("READ", "WRITE");
-
             assertThat(claims.getId()).isNotBlank();
-
             assertThat(claims.getIssuedAt()).isNotNull();
-
             assertThat(claims.getExpiresAt()).isNotNull();
-
             assertThat(claims.getExpiresAt()).isEqualTo(claims.getIssuedAt().plus(ACCESS_TOKEN_DURATION));
         }
 
@@ -187,27 +164,20 @@ class TestAuthenticationService {
             UserEntity user = createUser();
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
             when(authentication.getName()).thenReturn(USERNAME);
-
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(REFRESH_TOKEN);
 
             authenticationService.authenticate(request);
 
             ArgumentCaptor<JwtEncoderParameters> captor = ArgumentCaptor.forClass(JwtEncoderParameters.class);
-
             verify(jwtEncoder).encode(captor.capture());
 
             String jwtId = captor.getValue().getClaims().getId();
 
             assertThat(jwtId).isNotNull();
-
             assertThatCodeIsValidUuid(jwtId);
         }
 
@@ -218,25 +188,18 @@ class TestAuthenticationService {
             UserEntity user = createUserWithDuplicatePermissions();
 
             when(authenticationManager.authenticate(any())).thenReturn(authentication);
-
             when(authentication.getName()).thenReturn(USERNAME);
-
             when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(REFRESH_TOKEN);
 
             authenticationService.authenticate(request);
 
             ArgumentCaptor<JwtEncoderParameters> captor = ArgumentCaptor.forClass(JwtEncoderParameters.class);
-
             verify(jwtEncoder).encode(captor.capture());
 
             List<String> authorities = captor.getValue().getClaims().getClaimAsStringList("authorities");
-
             assertThat(authorities).containsExactly("READ", "WRITE");
         }
     }
@@ -246,23 +209,17 @@ class TestAuthenticationService {
 
         @Test
         void shouldRefreshTokens() {
-            RefreshTokenRequestDto request = new RefreshTokenRequestDto(REFRESH_TOKEN);
-
             UserEntity user = createUser();
 
             RefreshTokenEntity currentRefreshToken = new RefreshTokenEntity();
-
             currentRefreshToken.setUser(user);
 
             when(refreshTokenService.validate(REFRESH_TOKEN)).thenReturn(currentRefreshToken);
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(NEW_REFRESH_TOKEN);
 
-            TokenResponseDto result = authenticationService.refresh(request);
+            AuthenticationTokensDto result = authenticationService.refresh(REFRESH_TOKEN);
 
             assertThat(result).isNotNull();
             assertThat(result.accessToken()).isEqualTo(ACCESS_TOKEN);
@@ -271,60 +228,46 @@ class TestAuthenticationService {
             assertThat(result.expiresIn()).isEqualTo(ACCESS_TOKEN_DURATION.toSeconds());
 
             verify(refreshTokenService).validate(REFRESH_TOKEN);
-
             verify(refreshTokenService).markAsUsed(currentRefreshToken);
-
             verify(refreshTokenService).create(user);
         }
 
         @Test
         void shouldRejectRefreshWhenUserIsDisabled() {
-            RefreshTokenRequestDto request = new RefreshTokenRequestDto(REFRESH_TOKEN);
-
             UserEntity user = createUser();
             user.setEnabled(false);
 
             RefreshTokenEntity refreshToken = new RefreshTokenEntity();
-
             refreshToken.setUser(user);
 
             when(refreshTokenService.validate(REFRESH_TOKEN)).thenReturn(refreshToken);
 
-            assertThatThrownBy(() -> authenticationService.refresh(request))
+            assertThatThrownBy(() -> authenticationService.refresh(REFRESH_TOKEN))
                     .isInstanceOf(InvalidRefreshTokenException.class)
                     .hasMessage("User is disabled");
 
             verify(refreshTokenService).validate(REFRESH_TOKEN);
-
             verify(refreshTokenService, never()).markAsUsed(any());
-
             verify(refreshTokenService, never()).create(any());
-
             verify(jwtEncoder, never()).encode(any());
         }
 
         @Test
         void shouldPropagateInvalidRefreshTokenException() {
-            RefreshTokenRequestDto request = new RefreshTokenRequestDto(REFRESH_TOKEN);
-
             when(refreshTokenService.validate(REFRESH_TOKEN))
                     .thenThrow(new InvalidRefreshTokenException("Refresh token has expired"));
 
-            assertThatThrownBy(() -> authenticationService.refresh(request))
+            assertThatThrownBy(() -> authenticationService.refresh(REFRESH_TOKEN))
                     .isInstanceOf(InvalidRefreshTokenException.class)
                     .hasMessage("Refresh token has expired");
 
             verify(refreshTokenService, never()).markAsUsed(any());
-
             verify(refreshTokenService, never()).create(any());
-
             verify(jwtEncoder, never()).encode(any());
         }
 
         @Test
         void shouldGenerateJwtWithUserAuthoritiesDuringRefresh() {
-            RefreshTokenRequestDto request = new RefreshTokenRequestDto(REFRESH_TOKEN);
-
             UserEntity user = createUserWithDuplicatePermissions();
 
             RefreshTokenEntity refreshToken = new RefreshTokenEntity();
@@ -332,36 +275,27 @@ class TestAuthenticationService {
             refreshToken.setUser(user);
 
             when(refreshTokenService.validate(REFRESH_TOKEN)).thenReturn(refreshToken);
-
             when(jwtEncoder.encode(any())).thenReturn(jwt);
-
             when(jwt.getTokenValue()).thenReturn(ACCESS_TOKEN);
-
             when(refreshTokenService.create(user)).thenReturn(NEW_REFRESH_TOKEN);
 
-            authenticationService.refresh(request);
+            authenticationService.refresh(REFRESH_TOKEN);
 
             ArgumentCaptor<JwtEncoderParameters> captor = ArgumentCaptor.forClass(JwtEncoderParameters.class);
-
             verify(jwtEncoder).encode(captor.capture());
 
             JwtClaimsSet claims = captor.getValue().getClaims();
-
             assertThat(claims.getSubject()).isEqualTo(USERNAME);
-
             assertThat(claims.getClaimAsStringList("authorities")).containsExactly("READ", "WRITE");
         }
     }
 
     @Nested
     class Logout {
-
         @Test
         void shouldRevokeRefreshToken() {
             LogoutRequestDto request = new LogoutRequestDto(REFRESH_TOKEN);
-
             authenticationService.logout(request);
-
             verify(refreshTokenService).revoke(REFRESH_TOKEN);
         }
     }
@@ -411,9 +345,7 @@ class TestAuthenticationService {
 
     private PermissionEntity createPermission(String name) {
         PermissionEntity permission = new PermissionEntity();
-
         permission.setName(name);
-
         return permission;
     }
 

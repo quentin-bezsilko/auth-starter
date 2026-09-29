@@ -24,11 +24,8 @@ import org.springframework.core.io.Resource;
 class TestKeyConfig {
 
     private static final String PUBLIC_KEY_BEGIN = "-----BEGIN PUBLIC KEY-----";
-
     private static final String PUBLIC_KEY_END = "-----END PUBLIC KEY-----";
-
     private static final String PRIVATE_KEY_BEGIN = "-----BEGIN PRIVATE KEY-----";
-
     private static final String PRIVATE_KEY_END = "-----END PRIVATE KEY-----";
 
     @Mock
@@ -41,11 +38,8 @@ class TestKeyConfig {
     @BeforeEach
     void setUp() throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-
         keyPairGenerator.initialize(2048);
-
         keyPair = keyPairGenerator.generateKeyPair();
-
         keyConfig = new KeyConfig(keyProperties);
     }
 
@@ -60,11 +54,8 @@ class TestKeyConfig {
             when(keyProperties.publicKey()).thenReturn(resource(pem));
 
             RSAPublicKey result = keyConfig.publicKey();
-
             assertThat(result).isNotNull();
-
             assertThat(result.getAlgorithm()).isEqualTo("RSA");
-
             assertThat(result.getEncoded()).isEqualTo(keyPair.getPublic().getEncoded());
         }
 
@@ -72,15 +63,12 @@ class TestKeyConfig {
         void shouldSupportPemWithLineBreaks() {
             String base64 =
                     Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
-
             String formattedBase64 = base64.replaceAll("(.{64})", "$1\n");
-
             String pem = PUBLIC_KEY_BEGIN + "\n" + formattedBase64 + "\n" + PUBLIC_KEY_END;
 
             when(keyProperties.publicKey()).thenReturn(resource(pem));
 
             RSAPublicKey result = keyConfig.publicKey();
-
             assertThat(result.getEncoded()).isEqualTo(keyPair.getPublic().getEncoded());
         }
 
@@ -139,11 +127,8 @@ class TestKeyConfig {
             when(keyProperties.privateKey()).thenReturn(resource(pem));
 
             RSAPrivateKey result = keyConfig.privateKey();
-
             assertThat(result).isNotNull();
-
             assertThat(result.getAlgorithm()).isEqualTo("RSA");
-
             assertThat(result.getEncoded()).isEqualTo(keyPair.getPrivate().getEncoded());
         }
 
@@ -219,10 +204,8 @@ class TestKeyConfig {
     }
 
     private String toPem(String begin, String end, byte[] encodedKey) {
-
         String base64 =
                 Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.UTF_8)).encodeToString(encodedKey);
-
         return begin + "\n" + base64 + "\n" + end;
     }
 }

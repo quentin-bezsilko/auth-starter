@@ -24,24 +24,19 @@ class TestGlobalExceptionHandler {
         @Test
         void shouldReturnUnauthorizedProblemDetail() {
             InvalidRefreshTokenException exception = new InvalidRefreshTokenException("Invalid refresh token");
-
             ProblemDetail result = globalExceptionHandler.handleInvalidRefreshToken(exception);
 
             assertThat(result).isNotNull();
-
             assertThat(result.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
         }
 
         @Test
         void shouldReturnInvalidRefreshTokenProblemDetail() {
             InvalidRefreshTokenException exception = new InvalidRefreshTokenException("Refresh token has expired");
-
             ProblemDetail result = globalExceptionHandler.handleInvalidRefreshToken(exception);
 
             assertThat(result.getTitle()).isEqualTo("Invalid refresh token");
-
             assertThat(result.getDetail()).isEqualTo("Refresh token has expired");
-
             assertThat(result.getProperties()).containsEntry("error", "invalid_refresh_token");
         }
 

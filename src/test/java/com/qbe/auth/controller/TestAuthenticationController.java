@@ -5,10 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.qbe.auth.dto.LoginRequestDto;
-import com.qbe.auth.dto.LogoutRequestDto;
-import com.qbe.auth.dto.RefreshTokenRequestDto;
-import com.qbe.auth.dto.TokenResponseDto;
+import com.qbe.auth.dto.*;
 import com.qbe.auth.service.AuthenticationService;
 import java.time.Duration;
 import org.junit.jupiter.api.Nested;
@@ -17,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -44,30 +42,31 @@ class TestAuthenticationController {
     class Login {
 
         @Test
-        void shouldAuthenticateUserAndReturnTokens() {
+        void shouldAuthenticateUserAndReturnAccessTokenAndRefreshTokenCookie() {
             LoginRequestDto request = new LoginRequestDto(USERNAME, PASSWORD);
 
-            TokenResponseDto expectedResponse =
-                    new TokenResponseDto(ACCESS_TOKEN, REFRESH_TOKEN, TOKEN_TYPE, EXPIRES_IN);
+            AuthenticationTokensDto tokens =
+                    new AuthenticationTokensDto(ACCESS_TOKEN, REFRESH_TOKEN, TOKEN_TYPE, EXPIRES_IN);
 
-            when(authenticationService.authenticate(request)).thenReturn(expectedResponse);
+            when(authenticationService.authenticate(request)).thenReturn(tokens);
 
             ResponseEntity<TokenResponseDto> response = authenticationController.login(request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-            assertThat(response.getBody()).isSameAs(expectedResponse);
-
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().accessToken()).isEqualTo(ACCESS_TOKEN);
-
-            assertThat(response.getBody().refreshToken()).isEqualTo(REFRESH_TOKEN);
-
             assertThat(response.getBody().tokenType()).isEqualTo(TOKEN_TYPE);
-
             assertThat(response.getBody().expiresIn()).isEqualTo(EXPIRES_IN);
 
-            verify(authenticationService).authenticate(request);
+            String setCookie = response.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+            assertThat(setCookie).isNotNull();
+            assertThat(setCookie)
+                    .contains("refreshToken=" + REFRESH_TOKEN)
+                    .contains("HttpOnly")
+                    .contains("Path=/")
+                    .contains("SameSite=Lax");
 
+            verify(authenticationService).authenticate(request);
             verifyNoMoreInteractions(authenticationService);
         }
     }
@@ -76,30 +75,32 @@ class TestAuthenticationController {
     class Refresh {
 
         @Test
-        void shouldRefreshTokenAndReturnNewTokens() {
-            RefreshTokenRequestDto request = new RefreshTokenRequestDto(REFRESH_TOKEN);
+        void shouldRefreshTokenAndReturnNewAccessTokenAndRefreshTokenCookie() {
+            AuthenticationTokensDto tokens =
+                    new AuthenticationTokensDto(NEW_ACCESS_TOKEN, NEW_REFRESH_TOKEN, TOKEN_TYPE, EXPIRES_IN);
 
-            TokenResponseDto expectedResponse =
-                    new TokenResponseDto(NEW_ACCESS_TOKEN, NEW_REFRESH_TOKEN, TOKEN_TYPE, EXPIRES_IN);
+            when(authenticationService.refresh(REFRESH_TOKEN)).thenReturn(tokens);
 
-            when(authenticationService.refresh(request)).thenReturn(expectedResponse);
-
-            ResponseEntity<TokenResponseDto> response = authenticationController.refresh(request);
-
+            ResponseEntity<TokenResponseDto> response = authenticationController.refresh(REFRESH_TOKEN);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-            assertThat(response.getBody()).isSameAs(expectedResponse);
-
+            // Body
+            assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().accessToken()).isEqualTo(NEW_ACCESS_TOKEN);
-
-            assertThat(response.getBody().refreshToken()).isEqualTo(NEW_REFRESH_TOKEN);
-
             assertThat(response.getBody().tokenType()).isEqualTo(TOKEN_TYPE);
-
             assertThat(response.getBody().expiresIn()).isEqualTo(EXPIRES_IN);
 
-            verify(authenticationService).refresh(request);
+            // Refresh token cookie
+            String setCookie = response.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
+            assertThat(setCookie).isNotNull();
+            assertThat(setCookie)
+                    .contains("refreshToken=" + NEW_REFRESH_TOKEN)
+                    .contains("HttpOnly")
+                    .contains("Path=/")
+                    .contains("SameSite=Lax");
+
+            verify(authenticationService).refresh(REFRESH_TOKEN);
             verifyNoMoreInteractions(authenticationService);
         }
     }
@@ -110,11 +111,11 @@ class TestAuthenticationController {
         @Test
         void shouldLogoutUserAndReturnNoContent() {
             LogoutRequestDto request = new LogoutRequestDto(REFRESH_TOKEN);
-
             ResponseEntity<Void> response = authenticationController.logout(request);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
             assertThat(response.getBody()).isNull();
+
             verify(authenticationService).logout(request);
             verifyNoMoreInteractions(authenticationService);
         }

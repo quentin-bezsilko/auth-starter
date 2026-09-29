@@ -1,9 +1,6 @@
 package com.qbe.auth.service;
 
-import com.qbe.auth.dto.LoginRequestDto;
-import com.qbe.auth.dto.LogoutRequestDto;
-import com.qbe.auth.dto.RefreshTokenRequestDto;
-import com.qbe.auth.dto.TokenResponseDto;
+import com.qbe.auth.dto.*;
 import com.qbe.auth.entity.PermissionEntity;
 import com.qbe.auth.entity.RefreshTokenEntity;
 import com.qbe.auth.entity.UserEntity;
@@ -11,6 +8,7 @@ import com.qbe.auth.exception.InvalidRefreshTokenException;
 import com.qbe.auth.exception.UserNotFoundException;
 import com.qbe.auth.properties.JwtProperties;
 import com.qbe.auth.repository.UserRepository;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +35,7 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public TokenResponseDto authenticate(LoginRequestDto request) {
+    public AuthenticationTokensDto authenticate(LoginRequestDto request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password()));
 
@@ -48,7 +46,7 @@ public class AuthenticationService {
         String accessToken = createAccessToken(user);
         String refreshToken = refreshTokenService.create(user);
 
-        return new TokenResponseDto(
+        return new AuthenticationTokensDto(
                 accessToken,
                 refreshToken,
                 TOKEN_TYPE,
@@ -56,9 +54,8 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public TokenResponseDto refresh(RefreshTokenRequestDto request) {
-        RefreshTokenEntity currentRefreshToken = refreshTokenService.validate(request.refreshToken());
-
+    public AuthenticationTokensDto refresh(@NotNull String refreshToken) {
+        RefreshTokenEntity currentRefreshToken = refreshTokenService.validate(refreshToken);
         UserEntity user = currentRefreshToken.getUser();
 
         if (!user.isEnabled()) {
@@ -66,11 +63,10 @@ public class AuthenticationService {
         }
 
         refreshTokenService.markAsUsed(currentRefreshToken);
-
         String accessToken = createAccessToken(user);
         String newRefreshToken = refreshTokenService.create(user);
 
-        return new TokenResponseDto(
+        return new AuthenticationTokensDto(
                 accessToken,
                 newRefreshToken,
                 TOKEN_TYPE,
@@ -78,8 +74,8 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void logout(LogoutRequestDto request) {
-        refreshTokenService.revoke(request.refreshToken());
+    public void logout(@NotNull LogoutRequestDto logoutRequestDto) {
+        refreshTokenService.revoke(logoutRequestDto.refreshToken());
     }
 
     private String createAccessToken(UserEntity user) {

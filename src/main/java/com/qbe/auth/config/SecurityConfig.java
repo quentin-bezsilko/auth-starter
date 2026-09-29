@@ -69,7 +69,6 @@ public class SecurityConfig {
 
     @Bean
     JWKSource<SecurityContext> jwkSource(RSAPublicKey publicKey, RSAPrivateKey privateKey) {
-
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
                 .keyID(KEY_ID)

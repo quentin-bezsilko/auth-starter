@@ -31,21 +31,18 @@ class TestCorsConfig {
     @Test
     void shouldAllowAngularLocalhostOrigin() {
         CorsConfiguration configuration = getCorsConfiguration();
-
         assertEquals(List.of("http://localhost:4200"), configuration.getAllowedOrigins());
     }
 
     @Test
     void shouldAllowExpectedHttpMethods() {
         CorsConfiguration configuration = getCorsConfiguration();
-
         assertEquals(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"), configuration.getAllowedMethods());
     }
 
     @Test
     void shouldAllowExpectedHeaders() {
         CorsConfiguration configuration = getCorsConfiguration();
-
         assertEquals(List.of("Authorization", "Content-Type"), configuration.getAllowedHeaders());
     }
 

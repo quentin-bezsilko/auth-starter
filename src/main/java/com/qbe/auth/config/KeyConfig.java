@@ -38,7 +38,6 @@ public class KeyConfig {
                     PUBLIC_KEY_END);
 
             return (RSAPublicKey) KeyFactory.getInstance(RSA).generatePublic(new X509EncodedKeySpec(decoded));
-
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
             throw new IllegalStateException("Unable to load RSA public key", e);
         }
@@ -53,7 +52,6 @@ public class KeyConfig {
                     PRIVATE_KEY_END);
 
             return (RSAPrivateKey) KeyFactory.getInstance(RSA).generatePrivate(new PKCS8EncodedKeySpec(decoded));
-
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException e) {
             throw new IllegalStateException("Unable to load RSA private key", e);
         }
