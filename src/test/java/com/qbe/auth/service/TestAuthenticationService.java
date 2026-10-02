@@ -294,8 +294,7 @@ class TestAuthenticationService {
     class Logout {
         @Test
         void shouldRevokeRefreshToken() {
-            LogoutRequestDto request = new LogoutRequestDto(REFRESH_TOKEN);
-            authenticationService.logout(request);
+            authenticationService.logout(REFRESH_TOKEN);
             verify(refreshTokenService).revoke(REFRESH_TOKEN);
         }
     }

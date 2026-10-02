@@ -63,9 +63,12 @@ public class AuthenticationController {
     @ApiResponse(responseCode = "400", description = "Invalid request")
     @ApiResponse(responseCode = "401", description = "Invalid refresh token")
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequestDto logoutRequestDto) {
-        authenticationService.logout(logoutRequestDto);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> logout(@CookieValue(REFRESH_TOKEN_COOKIE) String refreshToken) {
+        authenticationService.logout(refreshToken);
+        ResponseCookie deleteRefreshTokenCookie = deleteRefreshTokenCookie();
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, deleteRefreshTokenCookie.toString())
+                .build();
     }
 
     private ResponseCookie createRefreshTokenCookie(String refreshToken) {
@@ -74,6 +77,16 @@ public class AuthenticationController {
                 .secure(false)
                 .sameSite("Lax")
                 .path("/")
+                .build();
+    }
+
+    private ResponseCookie deleteRefreshTokenCookie() {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
                 .build();
     }
 }

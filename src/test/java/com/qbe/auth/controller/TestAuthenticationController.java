@@ -110,13 +110,12 @@ class TestAuthenticationController {
 
         @Test
         void shouldLogoutUserAndReturnNoContent() {
-            LogoutRequestDto request = new LogoutRequestDto(REFRESH_TOKEN);
-            ResponseEntity<Void> response = authenticationController.logout(request);
+            ResponseEntity<Void> response = authenticationController.logout(REFRESH_TOKEN);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
             assertThat(response.getBody()).isNull();
 
-            verify(authenticationService).logout(request);
+            verify(authenticationService).logout(REFRESH_TOKEN);
             verifyNoMoreInteractions(authenticationService);
         }
     }

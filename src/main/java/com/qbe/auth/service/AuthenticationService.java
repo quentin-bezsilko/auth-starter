@@ -74,8 +74,8 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public void logout(@NotNull LogoutRequestDto logoutRequestDto) {
-        refreshTokenService.revoke(logoutRequestDto.refreshToken());
+    public void logout(@NotNull String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
     }
 
     private String createAccessToken(UserEntity user) {
